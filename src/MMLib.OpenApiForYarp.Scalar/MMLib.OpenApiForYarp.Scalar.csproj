@@ -7,7 +7,12 @@
     <PackageId>MMLib.OpenApiForYarp.Scalar</PackageId>
     <Title>MMLib.OpenApiForYarp.Scalar</Title>
     <Description>Scalar API reference UI adapter for MMLib.OpenApiForYarp. Registers every downstream cluster document as a separate Scalar document.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

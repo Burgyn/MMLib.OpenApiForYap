@@ -7,7 +7,12 @@
     <PackageId>MMLib.OpenApiForYarp</PackageId>
     <Title>MMLib.OpenApiForYarp</Title>
     <Description>Aggregates OpenAPI documentation from downstream microservices onto a YARP reverse-proxy gateway. The modern successor to MMLib.SwaggerForOcelot — built for YARP, Scalar, and Microsoft.OpenApi.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

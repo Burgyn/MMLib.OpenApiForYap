@@ -7,7 +7,12 @@
     <PackageId>MMLib.OpenApiForYarp.SwaggerUI</PackageId>
     <Title>MMLib.OpenApiForYarp.SwaggerUI</Title>
     <Description>Swagger UI adapter for MMLib.OpenApiForYarp. Exposes every downstream cluster document in the Swagger UI document selector.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
