@@ -44,7 +44,7 @@ optionally filters/merges/propagates security, and serves the result at
 | Decision | Choice | Rationale |
 |---|---|---|
 | Target frameworks | **multi-target `net8.0` + `net10.0`** | net8 LTS for adoption + net10 for modern stack |
-| OpenAPI object model | **single `Microsoft.OpenApi` 2.x for both TFMs** (fallback 1.6.x if 2.x lacks net8) | library uses only the object model + JSON reader/writer, NOT `Microsoft.AspNetCore.OpenApi` transformer types → no `#if` needed |
+| OpenAPI object model | **single `Microsoft.OpenApi` 3.7.0 for both TFMs** (targets net8.0/netstandard2.0; verified) | library uses only the object model + JSON reader/writer, NOT `Microsoft.AspNetCore.OpenApi` transformer types → no `#if` needed |
 | Pipeline model | **everything via pipeline** — built-ins registered first, fully reorder/remove/replace-able | matches spec §8; max extensibility |
 | Core package name | `MMLib.OpenApiForYarp` (no `.Core`); UI postfix `.Scalar` / `.SwaggerUI` | cleanest for consumers, matches brand |
 | Test framework | **xUnit + Verify (snapshots) + Shouldly** | Verify replaces manual golden files; Shouldly/AwesomeAssertions avoid FluentAssertions v8 commercial license |
@@ -54,6 +54,24 @@ optionally filters/merges/propagates security, and serves the result at
 | Path transform semantics | **correct real YARP semantics**, not the spec's literal (and technically wrong) example | see §7 |
 | OpenAPI output version | preserve source doc version where sensible; default OpenAPI 3.0 for merged | interop |
 | NuGet publish | `.csproj` packable; actual publish gated behind version bump on main | |
+
+### 3.1 Verified dependency versions (researched 2026-06-13)
+
+| Package | Version | Notes |
+|---|---|---|
+| `Yarp.ReverseProxy` | `2.3.0` | net8+net10; `IProxyConfigProvider`, `RouteConfig.Transforms` = `IReadOnlyList<IReadOnlyDictionary<string,string>>?` |
+| `Microsoft.OpenApi` | `3.7.0` | net8/netstandard2.0; readers merged in (no separate Readers pkg); `Operations` keyed by `System.Net.Http.HttpMethod`; `IOpenApiSchema`/`IOpenApiSecurityScheme` + reference wrapper types; `OpenApiDocument.Parse/LoadAsync`, `SerializeAsJsonAsync` |
+| `Microsoft.Extensions.ServiceDiscovery` | `10.7.0` | sealed `ServiceEndpointResolver.GetEndpointsAsync` (no interface) |
+| `Microsoft.Extensions.ServiceDiscovery.Yarp` | `10.x` | YARP `AddServiceDiscoveryDestinationResolver()` (sample-side) |
+| `Scalar.AspNetCore` | `2.16.3` | `MapScalarApiReference(route, o => o.AddDocument(name, title, routePattern))` |
+| `Swashbuckle.AspNetCore.SwaggerUI` | latest | UI middleware only, no Swashbuckle generator |
+| `Nuke.Common` | `10.1.0` | build proj net10.0; `[GitHubActions]` generates workflows |
+| `xunit.v3` | `3.2.2` | + `Microsoft.NET.Test.Sdk` 18.6.0, `xunit.runner.visualstudio` 3.1.5 |
+| `Verify.XunitV3` | `31.19.1` | `VerifyJson`, CI auto-detect via `CI` env var |
+| `Shouldly` | `4.3.0` | assertions (avoids FluentAssertions v8 commercial license) |
+| `Microsoft.AspNetCore.Mvc.Testing` | per-TFM `8.0.x`/`10.0.9` | WebApplicationFactory |
+
+Versions pinned via `Directory.Packages.props` (Central Package Management); re-verify on restore.
 
 ## 4. Solution layout
 
@@ -104,12 +122,19 @@ LICENSE                             ← MIT
 - `FetchTimeout` applied via `CancellationTokenSource`. `ILogger` on fetch/parse failures
   (return null + log, endpoint responds 502/empty as appropriate).
 
-### 5.3 Destination resolver — `IServiceDestinationResolver`
-- Default `StaticDestinationResolver`: returns `Destination.Address` verbatim.
-- `ServiceDiscoveryDestinationResolver`: registered only when
-  `Microsoft.Extensions.ServiceDiscovery` is present in DI; uses `IServiceEndpointResolver`
-  to resolve logical addresses (e.g. `https://products-service`) to concrete endpoints.
-- Detection at registration time → no breaking change for static-config users.
+### 5.3 Destination resolver — `IServiceDestinationResolver` (our own abstraction)
+- Default `StaticDestinationResolver`: returns `DestinationConfig.Address` verbatim.
+- `ServiceDiscoveryDestinationResolver`: active only when `Microsoft.Extensions.ServiceDiscovery`
+  is registered; uses the **sealed `ServiceEndpointResolver`** (namespace
+  `Microsoft.Extensions.ServiceDiscovery`) — there is **no `IServiceEndpointResolver`
+  interface** — via `GetEndpointsAsync(logicalAddress, ct)` to resolve logical addresses
+  (e.g. `https://products-service`) to concrete endpoints before our HTTP fetch.
+- Detection at registration time: inspect `IServiceCollection` for a `ServiceEndpointResolver` /
+  `ServiceEndpointResolverFactory` registration; fallback at runtime to
+  `IServiceProvider.GetService<ServiceEndpointResolver>() is not null`. No breaking change for
+  static-config users. (We resolve for our own fetch; YARP's own proxying can separately use
+  `AddServiceDiscoveryDestinationResolver()` from the `Microsoft.Extensions.ServiceDiscovery.Yarp`
+  package — independent concern.)
 
 ### 5.4 YARP config access
 - Read current routes/clusters via `IProxyConfigProvider.GetConfig()`.
@@ -285,9 +310,13 @@ ApiKey), `complex-yarp.json` (multiple routes/transforms/catch-all/header/query 
   timeout (sensible default).
 
 ## 15. Risks & mitigations
-- **`Microsoft.OpenApi` 2.x net8 support** (riskiest): verify first thing; if 2.x has no net8
-  target, pin 1.6.x on both TFMs (still single version, no `#if`). Isolate reader/writer behind
-  a thin internal helper so a version switch is localized.
+- **`Microsoft.OpenApi` net8 support** — RESOLVED: `3.7.0` targets net8.0/netstandard2.0, works
+  on both TFMs with one reference, no `#if`. Still isolate reader/writer behind a thin internal
+  helper so a future version switch stays localized.
+- **Microsoft.OpenApi v3 API shape** — `Operations` keyed by `System.Net.Http.HttpMethod`;
+  collection values are interfaces (`IOpenApiSchema`/`IOpenApiPathItem`/...) that may be reference
+  wrappers (`OpenApiSchemaReference` etc.). Guard mutations with `is OpenApiSchema` / `is
+  OpenApiXxxReference` pattern matches.
 - **Package net10 support** (YARP, Scalar.AspNetCore, Verify, NUKE, xUnit): pin latest stable
   that supports net10; verify on restore.
 - **net8 build on net10 SDK**: requires net8 reference packs (restored via NuGet) — confirm
