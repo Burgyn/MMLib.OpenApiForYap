@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>mmlib-openapiforyarp-apphost</UserSecretsId>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceA\ServiceA.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\ServiceB\ServiceB.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\Gateway\Gateway.csproj" IsAspireProjectResource="true" />
+  </ItemGroup>
+
+</Project>
