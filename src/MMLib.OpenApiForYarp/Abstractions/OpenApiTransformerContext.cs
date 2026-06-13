@@ -31,6 +31,13 @@ public abstract class OpenApiTransformerContext
 
     /// <summary>The request service provider, for resolving additional services.</summary>
     public required IServiceProvider Services { get; init; }
+
+    /// <summary>
+    /// A per-document bag for passing state between transformers in one pipeline run (e.g. the
+    /// built-in path rewrite records which paths it published for the published-paths filter).
+    /// Shared across the document, operation, and schema contexts of a single run.
+    /// </summary>
+    public IDictionary<string, object?> Items { get; init; } = new Dictionary<string, object?>(StringComparer.Ordinal);
 }
 
 /// <summary>Context passed to <see cref="IOpenApiDocumentTransformer"/>.</summary>

@@ -59,6 +59,7 @@ internal sealed class OpenApiTransformerPipeline(OpenApiTransformerRegistry regi
                     Options = context.Options,
                     Document = document,
                     Services = services,
+                    Items = context.Items,
                     Path = path,
                     Method = method,
                 };
@@ -101,6 +102,7 @@ internal sealed class OpenApiTransformerPipeline(OpenApiTransformerRegistry regi
                 Options = context.Options,
                 Document = document,
                 Services = services,
+                Items = context.Items,
                 SchemaName = name,
             };
 

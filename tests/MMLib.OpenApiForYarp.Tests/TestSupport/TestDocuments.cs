@@ -35,4 +35,37 @@ internal static class TestDocuments
 
         return document;
     }
+
+    /// <summary>Adds HTTP bearer security schemes with the given names to the document's components.</summary>
+    public static OpenApiDocument WithSecuritySchemes(this OpenApiDocument document, params string[] names)
+    {
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+
+        foreach (string name in names)
+        {
+            document.Components.SecuritySchemes[name] = new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+            };
+        }
+
+        return document;
+    }
+
+    /// <summary>Adds simple object component schemas with the given names to the document.</summary>
+    public static OpenApiDocument WithSchemas(this OpenApiDocument document, params string[] names)
+    {
+        document.Components ??= new OpenApiComponents();
+        document.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
+
+        foreach (string name in names)
+        {
+            document.Components.Schemas[name] = new OpenApiSchema { Type = JsonSchemaType.Object };
+        }
+
+        return document;
+    }
 }
