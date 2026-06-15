@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi;
 using MMLib.OpenApiForYarp.Aggregation;
 using MMLib.OpenApiForYarp.Configuration;
@@ -6,10 +8,9 @@ using MMLib.OpenApiForYarp.OpenApi;
 namespace MMLib.OpenApiForYarp.Tests.Aggregation;
 
 /// <summary>
-/// Documents what happens when two services define the SAME schema name with DIFFERENT shapes.
-/// The merger is name-keyed: it keeps the first occurrence and warns; the second service's
-/// definition is dropped from the merged document (its refs then resolve to the first one).
-/// Per-service documents are unaffected.
+/// How the merger resolves component-schema name collisions across services: identical shapes merge
+/// silently; different shapes keep-first + warn by default, or (with RenameDuplicateSchemas) the
+/// colliding schema is renamed and its service's refs are rewritten so nothing is lost.
 /// </summary>
 public class SchemaConflictBehaviorTests
 {
@@ -25,7 +26,7 @@ public class SchemaConflictBehaviorTests
         }
         """;
 
-    // Same name "Money", DIFFERENT shape (value/iso/symbol instead of amount/currency).
+    // Same name "Money", DIFFERENT shape (value/iso/symbol).
     private const string OrdersWithMoneyValue = """
         {
           "openapi": "3.0.1", "info": { "title": "Orders", "version": "1.0.0" },
@@ -36,31 +37,71 @@ public class SchemaConflictBehaviorTests
         }
         """;
 
+    // Different path, IDENTICAL Money shape (amount/currency) — a genuinely shared contract.
+    private const string OrdersWithMoneyAmount = """
+        {
+          "openapi": "3.0.1", "info": { "title": "Orders", "version": "1.0.0" },
+          "paths": { "/api/orders/{id}/total": { "get": { "responses": { "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Money" } } } } } } } },
+          "components": { "schemas": { "Money": { "type": "object", "properties": {
+            "amount": { "type": "number", "format": "double" }, "currency": { "type": "string" } } } } }
+        }
+        """;
+
+    private static OpenApiDocument Merge(RecordingLogger<OpenApiDocumentMerger> logger, bool rename, params (string ClusterId, OpenApiDocument Document)[] docs)
+        => new OpenApiDocumentMerger(logger).Merge(docs, new MergedDocumentOptions { Title = "Gateway", Version = "1.0.0", RenameDuplicateSchemas = rename });
+
     [Fact]
-    public void DifferentShapes_SameName_KeepsFirst_DropsSecond_AndWarns()
+    public void DifferentShapes_Default_KeepsFirst_DropsSecond_AndWarns()
     {
         var logger = new RecordingLogger<OpenApiDocumentMerger>();
-
-        OpenApiDocument merged = new OpenApiDocumentMerger(logger).Merge(
-        [
+        OpenApiDocument merged = Merge(logger, rename: false,
             ("products-cluster", Parse(ProductsWithMoneyAmount)),
-            ("orders-cluster", Parse(OrdersWithMoneyValue)),
-        ], new MergedDocumentOptions { Title = "Gateway", Version = "1.0.0" });
+            ("orders-cluster", Parse(OrdersWithMoneyValue)));
 
-        // Exactly one "Money" survives — the FIRST service's shape (amount/currency).
-        OpenApiSchema money = (OpenApiSchema)merged.Components!.Schemas!["Money"];
+        // One "Money" survives — the first service's shape; the second is dropped.
+        var money = (OpenApiSchema)merged.Components!.Schemas!["Money"];
         money.Properties!.Keys.ShouldBe(["amount", "currency"], ignoreOrder: true);
-        money.Properties.Keys.ShouldNotContain("value");
+        merged.Components.Schemas.Keys.ShouldNotContain(k => k.Contains("OrdersCluster"));
+        logger.Entries.ShouldContain(e => e.Level == LogLevel.Warning && e.Message.Contains("Money"));
+    }
 
-        // The collision is reported.
-        logger.Entries.ShouldContain(e =>
-            e.Level == Microsoft.Extensions.Logging.LogLevel.Warning && e.Message.Contains("Money"));
+    [Fact]
+    public void DifferentShapes_WithRename_KeepsBoth_AndRewritesRefs()
+    {
+        var logger = new RecordingLogger<OpenApiDocumentMerger>();
+        OpenApiDocument merged = Merge(logger, rename: true,
+            ("products-cluster", Parse(ProductsWithMoneyAmount)),
+            ("orders-cluster", Parse(OrdersWithMoneyValue)));
 
-        // Both services' paths are still present and both still $ref "Money" — in the merged doc they
-        // now resolve to the first service's schema (the documented limitation of name-keyed merging).
-        merged.Paths.ShouldContainKey("/api/products/{id}/price");
-        merged.Paths.ShouldContainKey("/api/orders/{id}/total");
-        var ordersOp = ((OpenApiPathItem)merged.Paths["/api/orders/{id}/total"]).Operations![System.Net.Http.HttpMethod.Get];
-        ordersOp.Responses!["200"].Content!["application/json"].Schema.ShouldBeOfType<OpenApiSchemaReference>();
+        // Both shapes are preserved under distinct names — nothing is lost.
+        merged.Components!.Schemas!.ShouldContainKey("Money");
+        merged.Components!.Schemas!.ShouldContainKey("OrdersClusterMoney");
+        ((OpenApiSchema)merged.Components!.Schemas!["Money"]).Properties!.Keys.ShouldBe(["amount", "currency"], ignoreOrder: true);
+        ((OpenApiSchema)merged.Components!.Schemas!["OrdersClusterMoney"]).Properties!.Keys.ShouldBe(["value", "iso", "symbol"], ignoreOrder: true);
+
+        // Each service's operation references the right schema in the merged document.
+        JsonNode root = JsonNode.Parse(OpenApiSerializer.SerializeToJson(merged))!;
+        Ref(root, "/api/products/{id}/price").ShouldBe("#/components/schemas/Money");
+        Ref(root, "/api/orders/{id}/total").ShouldBe("#/components/schemas/OrdersClusterMoney");
+
+        // A rename is informational, not a warning.
+        logger.Entries.ShouldNotContain(e => e.Level == LogLevel.Warning);
+
+        static string? Ref(JsonNode root, string path) =>
+            root["paths"]![path]!["get"]!["responses"]!["200"]!["content"]!["application/json"]!["schema"]!["$ref"]!.GetValue<string>();
+    }
+
+    [Fact]
+    public void IdenticalShapes_MergeSilently_WithoutWarning()
+    {
+        var logger = new RecordingLogger<OpenApiDocumentMerger>();
+        OpenApiDocument merged = Merge(logger, rename: false,
+            ("products-cluster", Parse(ProductsWithMoneyAmount)),
+            ("orders-cluster", Parse(OrdersWithMoneyAmount)));
+
+        merged.Components!.Schemas!.ShouldContainKey("Money");
+        merged.Components!.Schemas!.Count.ShouldBe(1);
+        logger.HasWarning.ShouldBeFalse();
     }
 }

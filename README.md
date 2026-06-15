@@ -129,11 +129,12 @@ The `YarpOpenApi` section sits alongside YARP's own `ReverseProxy` section.
 | `Description` | `string?` | `null` | Merged document description. |
 | `RoutePattern` | `string` | `/openapi/all.json` | Route serving the merged document. |
 | `DocumentName` | `string` | `all` | Identifier used by UI adapters. |
+| `RenameDuplicateSchemas` | `bool` | `false` | On a same-named schema with **different** content, rename the colliding one (and rewrite that service's `$ref`s) instead of keeping the first and warning. |
 
 ## Features
 
 ### Merged document
-Set `MergeDocuments: true` to additionally serve `/openapi/all.json` combining every cluster. On a path or schema conflict the first occurrence is kept and a warning is logged; the merged `info` comes from `MergedDocument`.
+Set `MergeDocuments: true` to additionally serve `/openapi/all.json` combining every cluster; the merged `info` comes from `MergedDocument`. Components are unioned by name: **identically-shaped** schemas (e.g. a shared `Money` value object exposed by several services) merge silently into one. When two services define the **same name with different content**, the first is kept and a warning is logged — or, with `MergedDocument:RenameDuplicateSchemas: true`, the colliding schema is renamed (prefixed with its cluster) and that service's `$ref`s are rewritten, so the merged document stays correct for every service. Path conflicts always keep the first and warn.
 
 ### Published-paths filter & regex
 `AddOnlyPublishedPaths: true` drops any downstream path that isn't reachable through a YARP route. `IncludePaths` / `ExcludePaths` apply regular expressions to the rewritten gateway paths for finer control.

@@ -22,4 +22,14 @@ public sealed class MergedDocumentOptions
 
     /// <summary>The identifier used for the merged document in UI adapters. Defaults to <c>"all"</c>.</summary>
     public string DocumentName { get; set; } = "all";
+
+    /// <summary>
+    /// Controls how component-schema name collisions between services are resolved in the merged
+    /// document. When <see langword="true"/>, a schema whose name already exists with <em>different</em>
+    /// content is renamed (prefixed with the owning cluster) and that service's <c>$ref</c>s are
+    /// rewritten, so the merged document stays correct for every service. When <see langword="false"/>
+    /// (the default) the first occurrence is kept and a warning is logged. Identically-shaped schemas
+    /// are always merged silently regardless of this setting.
+    /// </summary>
+    public bool RenameDuplicateSchemas { get; set; }
 }

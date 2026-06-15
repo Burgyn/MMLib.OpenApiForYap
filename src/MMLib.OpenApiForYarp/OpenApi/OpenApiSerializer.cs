@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 
@@ -32,4 +33,14 @@ internal static class OpenApiSerializer
     /// </summary>
     public static OpenApiSpecVersion ResolveSpecVersion(OpenApiDiagnostic? diagnostic, OpenApiSpecVersion fallback = OpenApiSpecVersion.OpenApi3_0)
         => diagnostic?.SpecificationVersion ?? fallback;
+
+    /// <summary>Synchronously serializes any OpenAPI element to an OpenAPI 3.0 JSON string.</summary>
+    public static string SerializeToJson(IOpenApiSerializable element)
+    {
+        using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
+        var writer = new OpenApiJsonWriter(stringWriter);
+        element.SerializeAsV3(writer);
+        stringWriter.Flush();
+        return stringWriter.ToString();
+    }
 }
