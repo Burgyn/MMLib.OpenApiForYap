@@ -116,6 +116,14 @@ internal static class CatalogApi
             .WithName("GetProduct")
             .WithSummary("Get a product by id");
 
+        products.MapGet("/{id:guid}/price", Results<Ok<Money>, NotFound<ProblemDetails>> (Guid id) =>
+                store.Get(id) is { } product
+                    ? TypedResults.Ok(new Money(product.Price, product.Currency.ToString().ToUpperInvariant()))
+                    : TypedResults.NotFound(Problems.NotFound("Product", id)))
+            .WithName("GetProductPrice")
+            .WithSummary("Get a product's price")
+            .WithDescription("Returns the price as the shared Money value object — the same entity the Orders service uses.");
+
         products.MapPost("/", Results<Created<Product>, ValidationProblem> (CreateProductRequest request) =>
             {
                 if (!Validation.TryValidate(request, out var errors))

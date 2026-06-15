@@ -33,7 +33,8 @@ Then open:
 - **Products** — <http://localhost:5080/openapi/products-cluster.json> → paths rewritten to `/api/products/{id}`, write ops require Bearer
 - **Orders** — <http://localhost:5080/openapi/orders-cluster.json> → `/internal/health` is filtered out (`AddOnlyPublishedPaths`)
 - **Customers** — <http://localhost:5080/openapi/customers-cluster.json> → exposes both `Bearer` and `ApiKey` schemes
-- **Merged** — <http://localhost:5080/openapi/all.json> → all 13 paths, gateway-owned `info`, security schemes deduplicated to `Bearer` + `ApiKey`
+- **Merged** — <http://localhost:5080/openapi/all.json> → every path, gateway-owned `info`, security schemes deduplicated to `Bearer` + `ApiKey`
+- **Shared entity** — Products' `GET /api/products/{id}/price` and Orders' `GET /api/orders/{id}/total` both return the shared `Money` value object (from `Sample.Common`). Each per-service document carries its own `Money` schema; the merged document de-duplicates them into a single component.
 - **Proxied APIs** — <http://localhost:5080/api/products>, <http://localhost:5080/api/orders>, <http://localhost:5080/api/customers>
 
 ## Run it (.NET Aspire — service discovery)

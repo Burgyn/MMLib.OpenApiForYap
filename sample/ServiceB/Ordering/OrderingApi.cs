@@ -156,6 +156,14 @@ internal static class OrderingApi
             .WithName("GetOrder")
             .WithSummary("Get an order by id");
 
+        orders.MapGet("/{id:guid}/total", Results<Ok<Money>, NotFound<ProblemDetails>> (Guid id) =>
+                store.Get(id) is { } order
+                    ? TypedResults.Ok(new Money(order.Total, order.Currency.ToString().ToUpperInvariant()))
+                    : TypedResults.NotFound(Problems.NotFound("Order", id)))
+            .WithName("GetOrderTotal")
+            .WithSummary("Get an order's total")
+            .WithDescription("Returns the total as the shared Money value object — the same entity the Products service uses.");
+
         orders.MapPost("/", Results<Created<Order>, ValidationProblem> (CreateOrderRequest request) =>
             {
                 if (!Validation.TryValidate(request, out var errors))
