@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ServiceA\ServiceA.csproj" IsAspireProjectResource="true" />
     <ProjectReference Include="..\ServiceB\ServiceB.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\ServiceC\ServiceC.csproj" IsAspireProjectResource="true" />
     <ProjectReference Include="..\Gateway\Gateway.csproj" IsAspireProjectResource="true" />
   </ItemGroup>
 

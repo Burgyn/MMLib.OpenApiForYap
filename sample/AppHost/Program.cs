@@ -6,14 +6,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var products = builder.AddProject<Projects.ServiceA>("products-service");
 var orders = builder.AddProject<Projects.ServiceB>("orders-service");
+var customers = builder.AddProject<Projects.ServiceC>("customers-service");
 
 builder.AddProject<Projects.Gateway>("gateway")
     .WithExternalHttpEndpoints()
     .WithReference(products)
     .WithReference(orders)
+    .WithReference(customers)
     // Override the static localhost cluster addresses with logical service-discovery names.
     // The scheme (http) must match the downstream services' endpoint scheme.
     .WithEnvironment("ReverseProxy__Clusters__products-cluster__Destinations__default__Address", "http://products-service")
-    .WithEnvironment("ReverseProxy__Clusters__orders-cluster__Destinations__default__Address", "http://orders-service");
+    .WithEnvironment("ReverseProxy__Clusters__orders-cluster__Destinations__default__Address", "http://orders-service")
+    .WithEnvironment("ReverseProxy__Clusters__customers-cluster__Destinations__default__Address", "http://customers-service");
 
 builder.Build().Run();

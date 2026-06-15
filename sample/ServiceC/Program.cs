@@ -1,16 +1,17 @@
 using Sample.Common;
-using ServiceA.Catalog;
+using ServiceC.Customers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddSampleOpenApi(
-    title: "Products API",
-    description: "Catalog of products and categories for the storefront.");
+    title: "Customers API",
+    description: "Customer profiles, loyalty tiers and addresses.",
+    includeApiKey: true);
 
 var app = builder.Build();
 
 app.MapOpenApi(); // serves /openapi/v1.json
-app.MapCatalog();
+app.MapCustomers();
 
 app.Run();
