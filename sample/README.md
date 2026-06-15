@@ -34,12 +34,16 @@ The Aspire AppHost runs all three projects together and addresses the downstream
 proxying and for fetching the OpenAPI specs — via `Microsoft.Extensions.ServiceDiscovery`.
 
 ```bash
+aspire run                       # uses aspire.config.json -> sample/AppHost
+# or:
 dotnet run --project sample/AppHost
 ```
 
-> The AppHost targets `net9.0` and uses .NET Aspire 9; running it requires the .NET 9 runtime and the
-> Aspire tooling. The same gateway code powers both modes — only the cluster addresses differ
-> (static localhost vs. resolved logical names).
+This launches the Aspire dashboard and orchestrates all three projects. The same gateway code powers
+both modes — only the cluster addresses differ (static localhost vs. resolved logical names).
+
+> The AppHost targets `net10.0` and uses .NET Aspire 13. Install the Aspire CLI with
+> `dotnet tool install -g aspire.cli` (or `aspire update`) and ensure the .NET 10 runtime is present.
 
 ## What to look at in the gateway
 

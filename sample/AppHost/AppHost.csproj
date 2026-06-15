@@ -1,19 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+<Project Sdk="Aspire.AppHost.Sdk/13.4.4">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>mmlib-openapiforyarp-apphost</UserSecretsId>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- The Aspire dashboard/DCP tooling pulls transitive packages (e.g. MessagePack) that may carry
+         audit advisories. This is a local dev orchestrator (never packaged), so don't fail on them. -->
+    <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ServiceA\ServiceA.csproj" IsAspireProjectResource="true" />
