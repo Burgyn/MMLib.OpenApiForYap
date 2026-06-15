@@ -26,6 +26,12 @@ public class DestinationResolverTests
         => ServiceDiscoveryDestinationResolver
             .BuildAddress("http://orders-service", new IPEndPoint(IPAddress.Loopback, 5102))
             .ShouldBe("http://127.0.0.1:5102");
+
+    [Fact]
+    public void ServiceDiscovery_BuildAddress_FromUriEndpoint()
+        => ServiceDiscoveryDestinationResolver
+            .BuildAddress("http://products-service", new Microsoft.Extensions.ServiceDiscovery.UriEndPoint(new Uri("http://localhost:5101/")))
+            .ShouldBe("http://localhost:5101");
 }
 
 public class DownstreamOpenApiClientTests

@@ -43,6 +43,8 @@ internal sealed class ServiceDiscoveryDestinationResolver(
 
         return endPoint switch
         {
+            // Service discovery's configuration provider (and .NET Aspire) yield UriEndPoint.
+            UriEndPoint uriEndPoint => uriEndPoint.Uri.AbsoluteUri.TrimEnd('/'),
             DnsEndPoint dns => $"{scheme}://{dns.Host}:{dns.Port}",
             IPEndPoint ip => $"{scheme}://{ip.Address}:{ip.Port}",
             _ => null,

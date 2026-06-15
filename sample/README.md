@@ -6,7 +6,7 @@ This folder demonstrates every v1 feature of the library:
 |---|---|
 | `ServiceA` | Downstream **Products** API (minimal API + `Microsoft.AspNetCore.OpenApi`, Bearer scheme), `http://localhost:5101` |
 | `ServiceB` | Downstream **Orders** API (with an unpublished `/internal/health`), `http://localhost:5102` |
-| `Gateway` | YARP gateway using the library: per-service docs, merged document, Scalar UI, `AddOnlyPublishedPaths` on Orders, Bearer propagation, `http://localhost:5000` |
+| `Gateway` | YARP gateway using the library: per-service docs, merged document, Scalar UI, `AddOnlyPublishedPaths` on Orders, Bearer propagation, `http://localhost:5080` |
 | `AppHost` | .NET Aspire orchestrator showing **service discovery** (logical names resolved before fetching downstream specs) |
 
 ## Run it (static configuration)
@@ -21,17 +21,18 @@ dotnet run --project sample/Gateway
 
 Then open:
 
-- **Scalar UI** — <http://localhost:5000/scalar> (one tab per service + an "All Services" merged tab)
-- **Products document** — <http://localhost:5000/openapi/products-cluster.json> → paths rewritten to `/api/products/{id}`
-- **Orders document** — <http://localhost:5000/openapi/orders-cluster.json> → `/internal/health` is filtered out (`AddOnlyPublishedPaths`)
-- **Merged document** — <http://localhost:5000/openapi/all.json> → all paths, gateway-owned `info`, deduplicated `Bearer` scheme
-- **Proxied API** — <http://localhost:5000/api/products/1>
+- **Scalar UI** — <http://localhost:5080/scalar> (one tab per service + an "All Services" merged tab)
+- **Products document** — <http://localhost:5080/openapi/products-cluster.json> → paths rewritten to `/api/products/{id}`
+- **Orders document** — <http://localhost:5080/openapi/orders-cluster.json> → `/internal/health` is filtered out (`AddOnlyPublishedPaths`)
+- **Merged document** — <http://localhost:5080/openapi/all.json> → all paths, gateway-owned `info`, deduplicated `Bearer` scheme
+- **Proxied API** — <http://localhost:5080/api/products/1>
 
 ## Run it (.NET Aspire — service discovery)
 
 The Aspire AppHost runs all three projects together and addresses the downstreams by **logical name**
-(`https://products-service`, `https://orders-service`). The gateway resolves those names — both for
-proxying and for fetching the OpenAPI specs — via `Microsoft.Extensions.ServiceDiscovery`.
+(`http://products-service`, `http://orders-service`). The gateway resolves those names — both for
+proxying and for fetching the OpenAPI specs — via `Microsoft.Extensions.ServiceDiscovery`. Ports are
+assigned by Aspire (don't hard-code `Urls` in a project that Aspire orchestrates).
 
 ```bash
 aspire run                       # uses aspire.config.json -> sample/AppHost
