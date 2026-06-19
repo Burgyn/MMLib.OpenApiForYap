@@ -19,11 +19,18 @@
     <Product>MMLib.OpenApiForYarp</Product>
     <Copyright>Copyright © Milan Martiniak</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>logo.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Burgyn/MMLib.OpenApiForYarp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Burgyn/MMLib.OpenApiForYarp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageTags>yarp;openapi;swagger;scalar;gateway;reverse-proxy;aggregation;microservices</PackageTags>
   </PropertyGroup>
+
+  <!-- Pack the shared package icon into every packable project. MSBuildThisFileDirectory keeps the
+       path correct regardless of each project's depth; Pack only takes effect when a project packs. -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)assets\logo.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 
 </Project>
